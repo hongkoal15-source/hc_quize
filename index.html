@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>🔥 초등 상식 퀴즈 - 우주 효과 🔥</title>
+<style>
+body { margin:0; padding:0; font-family:Arial; text-align:center; color:white; transition: background 1s;}
+.box { max-width:700px; margin:50px auto; padding:20px; background:rgba(0,0,0,0.7); border-radius:10px; transition: transform 0.5s;}
+input,button { padding:10px; font-size:16px;}
+#scoreBox{margin:10px 0; font-size:18px;}
+.combo-effect { animation: comboPop 0.5s; }
+@keyframes comboPop {0%{transform:scale(1);}50%{transform:scale(1.5);}100%{transform:scale(1);}}
+canvas#stars { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:-1;}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<div class="box" id="box">
+  <h1>🔥 초등 상식 퀴즈 🔥</h1>
+  <div id="scoreBox">
+    점수: <span id="score">0</span> | 콤보: <span id="combo">0</span> | 티어: <span id="tier">나무</span> | 일일보상: <span id="daily">0</span>
+  </div>
+  <p id="question"></p>
+  <input id="answer" placeholder="정답 입력">
+  <br><br>
+  <button id="btn">제출</button>
+  <p id="result"></p>
+</div>
+
+<audio id="bgm" loop></audio>
+
+<script>
+// ---------------------
+// 문제
+// ---------------------
+const quiz = [
+  {q:"대한민국의 수도는?", a:["서울"]},
+  {q:"1+1은?", a:["2","둘"]},
+  {q:"하늘에서 내리는 것은?", a:["비","눈"]},
+  {q:"겨울에 눈이 내리면 무엇을 만들 수 있나요?", a:["눈사람","눈오리"]},
+  {q:"물의 화학식은?", a:["H2O"]}
+];
+
+function shuffle(array){for(let i=array.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [array[i],array[j]]=[array[j],array[i]]}}
+shuffle(quiz);
+
+let score=0, combo=0, index=0, daily=0;
+
+// DOM
+const scoreSpan=document.getElementById("score");
+const comboSpan=document.getElementById("combo");
+const tierText=document.getElementById("tier");
+const question=document.getElementById("question");
+const answer=document.getElementById("answer");
+const result=document.getElementById("result");
+const btn=document.getElementById("btn");
+const dailySpan=document.getElementById("daily");
+const bgm=document.getElementById("bgm");
+const box=document.getElementById("box");
+
+// ---------------------
+// 티어
+// ---------------------
+const tiers = [
+{score:0,name:"나무",bg:"#111",music:"https://cdn.pixabay.com/download/audio/2022/03/15/audio_77c5ef1f7b.mp3?filename=upbeat-pop-13632.mp3"},
+{score:10,name:"브론즈",bg:"#2b2b2b",music:"https://cdn.pixabay.com/download/audio/2022/03/15/audio_77c5ef1f7b.mp3?filename=upbeat-pop-13632.mp3"},
+{score:1000,name:"우주",bg:"black",music:"https://cdn.pixabay.com/download/audio/2022/03/15/audio_6c77e7f99f.mp3?filename=epic-space-13845.mp3"},
+{score:10000,name:"신",bg:"linear-gradient(45deg,#ffffff,#ff00ff,#00ffff)",music:"https://cdn.pixabay.com/download/audio/2022/03/15/audio_6c77e7f99f.mp3?filename=epic-space-13845.mp3"}
+];
+
+// 티어 업데이트 + 배경 & BGM
+function updateTier(){
+  let tierFound=false;
+  for(let i=tiers.length-1;i>=0;i--){
+    if(score>=tiers[i].score && !tierFound){
+      tierText.innerText=tiers[i].name;
+      document.body.style.background=tiers[i].bg;
+      bgm.src=tiers[i].music;
+      bgm.play();
+      tierFound=true;
+      break;
+    }
+  }
+  // 우주 티어 이상 시 별 효과 활성화
+  if(score>=1000){ initStars(); } 
+}
+
+// 문제 로드
+function loadQuestion(){
+  if(index>=quiz.length){shuffle(quiz); index=0;}
+  question.innerText = quiz[index].q;
+  answer.value = "";
+  result.innerText = "";
+}
+
+// 제출 버튼
+btn.addEventListener("click", ()=>{
+  if(bgm.paused){ bgm.play(); }
+  const user=answer.value.replace(/\s/g,"");
+  let correct=quiz[index].a.map(x=>x.replace(/\s/g,""));
+  if(correct.includes(user)){
+    combo++; score+=combo; 
+    result.innerText="정답! +" + combo + "점"; 
+    comboSpan.classList.add("combo-effect");
+    setTimeout(()=>comboSpan.classList.remove("combo-effect"),500);
+  }else{ combo=0; result.innerText="틀림!";}
+  scoreSpan.innerText=score;
+  comboSpan.innerText=combo;
+  updateTier();
+  index=Math.floor(Math.random()*quiz.length);
+  loadQuestion();
+});
+
+// 일일보상 +20점
+daily+=20; score+=20; dailySpan.innerText=daily; scoreSpan.innerText=score; updateTier();
+
+// 초기 문제
+loadQuestion();
+
+// ---------------------
+// 별 효과 (우주 티어 이상)
+// ---------------------
+const canvas=document.getElementById("stars");
+const ctx=canvas.getContext("2d");
+let starsArray=[], numStars=100;
+
+function initStars(){
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+  starsArray=[];
+  for(let i=0;i<numStars;i++){
+    starsArray.push({
+      x:Math.random()*canvas.width,
+      y:Math.random()*canvas.height,
+      r:Math.random()*2,
+      d:Math.random()*1
+    });
+  }
+  animateStars();
+}
+
+function animateStars(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let i=0;i<starsArray.length;i++){
+    let s=starsArray[i];
+    ctx.beginPath();
+    ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    ctx.fillStyle="white";
+    ctx.fill();
+    s.y+=s.d;
+    if(s.y>canvas.height){s.y=0; s.x=Math.random()*canvas.width;}
+  }
+  requestAnimationFrame(animateStars);
+}
+
+window.addEventListener("resize",initStars);
+</script>
+</body>
+</html>
